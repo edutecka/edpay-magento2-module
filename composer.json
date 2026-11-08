@@ -1,0 +1,21 @@
+{
+  "name": "edpay/magento2-module",
+  "description": "EDPay Multi-Gateway Payment Module for Magento 2 (M-Pesa, e-Mola, Cards, Bank Transfer)",
+  "type": "magento2-module",
+  "version": "1.0.0",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "EDPay Engineering",
+      "email": "dev@edpay.co.mz"
+    }
+  ],
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Edpay\\Payment\\": ""
+    }
+  }
+}

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <edpay_gateway>
+                <active>1</active>
+                <model>Edpay\Payment\Model\PaymentMethod</model>
+                <title>EDPay (M-Pesa, e-Mola, Cartão, Banco)</title>
+                <order_status>pending_payment</order_status>
+                <currency>MZN</currency>
+                <api_url>https://api-pay.edutecka.com</api_url>
+                <sandbox>0</sandbox>
+            </edpay_gateway>
+        </payment>
+    </default>
+</config>
