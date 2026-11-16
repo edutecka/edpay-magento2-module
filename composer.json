@@ -1,6 +1,6 @@
 {
   "name": "edpay/magento2-module",
-  "description": "EDPay Multi-Gateway Payment Module for Magento 2 (M-Pesa, e-Mola, Cards, Bank Transfer)",
+  "description": "EDPay payment module preview for Magento 2",
   "type": "magento2-module",
   "version": "1.0.0",
   "license": "MIT",

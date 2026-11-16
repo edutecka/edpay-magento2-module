@@ -27,12 +27,13 @@ There is no Composer package or signed release archive documented for installati
 
 ## Current implementation and configuration gaps
 
-- The payment model's `createCheckoutSession()` method makes a `POST /v1/core/payment-links` request with `X-EDPay-Public-Key` and `X-EDPay-Private-Key` headers. It passes the order amount in minor units, currency, order metadata and return URLs, and expects `data.hosted_url` or `data.checkout_url` in the response.
+- The payment model's `createCheckoutSession()` creates a link through `POST /v1/payment-links`, then a hosted session through `POST /v1/checkout/sessions`; it uses stable order-based idempotency keys and builds the hosted URL from the returned token at `https://pay.edutecka.com/pay?token=...&pk=...`.
 - The configured API URL defaults to `https://api-pay.edutecka.com`. Confirm the correct endpoint and request/response contract with EDPay before testing; do not assume this preview's default is appropriate for your account or environment.
 - The current repository does not include Magento admin configuration fields for the API URL, public/private keys or webhook secret, nor complete checkout commands that invoke the hosted-link method and redirect the customer. Add and verify that integration before attempting a checkout.
-- The webhook controller is intended to handle `payment.succeeded` and invoice an order identified by `data.metadata.magento_order_id`. The repository does not currently include the Magento route declaration needed to establish the callback URL. Add and test the route before registering a webhook.
-- The webhook controller only checks the HMAC signature when a secret is configured. With an empty/missing secret, it accepts the event without signature verification. Configure a secret and verify that invalid signatures are rejected before exposing or testing the callback.
-- The payment-link request creates its idempotency value using the current time. Retrying a request can therefore use a different key; test duplicate submissions and order reconciliation before any deployment.
+- The checkout method requires a valid public/private API key pair from the same environment (`pk_test_...` with `sk_test_...`, or `pk_live_...` with `sk_live_...`) and rejects invalid pairs before contacting the API.
+- The payment model stores the payment-link ID in the order payment's AdditionalInformation; the webhook finds the order by that link ID, checks confirmed status/amount/currency, and prevents reprocessing once invoiced. This requires an API version that emits `data.payment_link_id`. The webhook route is declared at `/edpay/webhook/index`.
+- The webhook controller requires a configured webhook secret and the `Payment-Signature` header. EDPay signs `timestamp + "." + raw request body` with HMAC-SHA256 and sends `Payment-Signature: t=<unix-seconds>,v1=<hex>`. It rejects missing secrets/headers, malformed signatures, timestamps outside the 300-second default window, and invalid HMAC values; comparison is constant-time and occurs before event parsing. The window can be changed through Magento config path `payment/edpay_gateway/webhook_tolerance_seconds` (default `300`).
+- Link and checkout-session creation use separate stable order-based idempotency keys.
 
 ## Sandbox validation checklist
 
@@ -44,7 +45,7 @@ After completing the missing configuration and routing work in a development env
 4. Test successful, failed, duplicate, delayed and unknown-order events; inspect invoice creation and order state changes.
 5. Confirm amounts, currency, order mapping and idempotency behavior, and review compatibility with the exact Magento patch version.
 
-The callback path implied by the controller and module name is `/edpay/webhook/index` (for example, `https://store.example/edpay/webhook/index`), but it is not usable until routing is added and verified in Magento.
+The declared callback route is `/edpay/webhook/index` (for example, `https://store.example/edpay/webhook/index`). The module still requires a Magento deployment to enable the route and configure the missing API and webhook credentials.
 
 ## Documentation
 

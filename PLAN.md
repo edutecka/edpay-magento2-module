@@ -1,14 +1,14 @@
-# Roadmap & Plano de Arquitetura - EDPay Magento 2 Module
+# Roadmap and Architecture Plan - EDPay Magento 2 Module
 
-## Fases de Desenvolvimento
+## Development Phases
 
-### Fase 1: Arquitetura & Configuração XML (Concluído)
-- [x] Estrutura de módulo `registration.php` e `etc/module.xml`.
-- [x] Definição de pagamentos em `etc/frontend/di.xml` e `etc/adminhtml/system.xml`.
+### Phase 1: Module Skeleton (Complete)
+- [x] Register the module in `registration.php` and `etc/module.xml`.
 
-### Fase 2: Gateway Command Pool & Controllers (Em Desenvolvimento)
-- [ ] Implementação de `AuthorizeCommand` e `CaptureCommand`.
-- [ ] Controller de callback de IPN / Webhooks (`/edpay/webhook/index`).
+### Phase 2: Payment Configuration and Controllers (In Progress)
+- [ ] Add payment configuration in `etc/frontend/di.xml` and `etc/adminhtml/system.xml`.
+- [ ] Implement `AuthorizeCommand` and `CaptureCommand`.
+- [ ] Add Magento routing for the IPN/webhook controller (`/edpay/webhook/index`).
 
-### Fase 3: Marketplace & Empacotamento
-- [ ] Publicação no Packagist e Adobe Commerce Marketplace.
+### Phase 3: Marketplace and Packaging
+- [ ] Publish to Packagist and the Adobe Commerce Marketplace.
