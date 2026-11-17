@@ -2,7 +2,7 @@
 
 This repository contains an early official integration preview for Magento 2 / Adobe Commerce. **It is not production-ready.** The current source does not provide complete Magento admin configuration or checkout/payment lifecycle wiring. Do not enable it on a live store or use it to collect real payments.
 
-The included payment model contains code to request a hosted payment link, and the webhook controller contains preliminary handling for successful payment events. The notes below describe the files currently in this repository, not a claim of a complete end-to-end Magento integration.
+The payment model creates a payment parent and then attaches hosted checkout to that payment. The webhook correlates successful events by the merchant reference. The notes below describe the current preview implementation.
 
 ## Requirements
 
@@ -27,19 +27,19 @@ There is no Composer package or signed release archive documented for installati
 
 ## Current implementation and configuration gaps
 
-- The payment model's `createCheckoutSession()` creates a link through `POST /v1/payment-links`, then a hosted session through `POST /v1/checkout/sessions`; it uses stable order-based idempotency keys and builds the hosted URL from the returned token at `https://pay.edutecka.com/pay?token=...&pk=...`.
+- The payment model creates one parent payment through `POST /v1/payments`, then starts hosted checkout through `POST /v1/payments/{id}/public-checkout`; it uses stable order-based idempotency keys and builds the hosted URL from the returned opaque token at `https://pay.edutecka.com/pay?token=...&pk=...`.
 - The configured API URL defaults to `https://api-pay.edutecka.com`. Confirm the correct endpoint and request/response contract with EDPay before testing; do not assume this preview's default is appropriate for your account or environment.
 - The current repository does not include Magento admin configuration fields for the API URL, public/private keys or webhook secret, nor complete checkout commands that invoke the hosted-link method and redirect the customer. Add and verify that integration before attempting a checkout.
 - The checkout method requires a valid public/private API key pair from the same environment (`pk_test_...` with `sk_test_...`, or `pk_live_...` with `sk_live_...`) and rejects invalid pairs before contacting the API.
-- The payment model stores the payment-link ID in the order payment's AdditionalInformation; the webhook finds the order by that link ID, checks confirmed status/amount/currency, and prevents reprocessing once invoiced. This requires an API version that emits `data.payment_link_id`. The webhook route is declared at `/edpay/webhook/index`.
+- The payment model stores the payment ID and merchant reference in order payment AdditionalInformation. The webhook finds the order by reference, validates status/amount/currency, and prevents reprocessing once invoiced. The webhook route is declared at `/edpay/webhook/index`.
 - The webhook controller requires a configured webhook secret and the `Payment-Signature` header. EDPay signs `timestamp + "." + raw request body` with HMAC-SHA256 and sends `Payment-Signature: t=<unix-seconds>,v1=<hex>`. It rejects missing secrets/headers, malformed signatures, timestamps outside the 300-second default window, and invalid HMAC values; comparison is constant-time and occurs before event parsing. The window can be changed through Magento config path `payment/edpay_gateway/webhook_tolerance_seconds` (default `300`).
-- Link and checkout-session creation use separate stable order-based idempotency keys.
+- Parent and hosted-checkout creation use separate stable order-based idempotency keys.
 
 ## Sandbox validation checklist
 
 After completing the missing configuration and routing work in a development environment:
 
-1. Use sandbox credentials and confirm the API endpoint and payment-link response with EDPay.
+1. Use sandbox credentials and confirm the API endpoint and payment creation and hosted-checkout response with EDPay.
 2. Verify checkout redirects only to the hosted URL returned by the API.
 3. Register the actual Magento webhook route and test signed and invalid-signature requests using the raw body.
 4. Test successful, failed, duplicate, delayed and unknown-order events; inspect invoice creation and order state changes.

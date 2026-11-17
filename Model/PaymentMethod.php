@@ -50,7 +50,7 @@ class PaymentMethod extends AbstractMethod
             curl_setopt_array($ch, [
                 CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 25,
                 CURLOPT_HTTPHEADER => array_merge($headers, ["Idempotency-Key: {$key}"]),
-                CURLOPT_POSTFIELDS => json_encode($payload),
+                CURLOPT_POSTFIELDS => ($payload === [] ? '{}' : json_encode($payload)),
             ]);
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -59,22 +59,23 @@ class PaymentMethod extends AbstractMethod
             return [$httpCode, json_decode((string) $response, true), $error];
         };
         $prefix = 'magento-order-' . $orderId;
-        [$httpCode, $link, $error] = $request("{$apiUrl}/v1/payment-links", [
+        [$httpCode, $payment, $error] = $request("{$apiUrl}/v1/payments", [
             'amount_minor' => $amountCentavos,
             'currency' => $order->getOrderCurrencyCode() ?: 'MZN',
-        ], "{$prefix}-link-create");
-        $linkId = $link['data']['id'] ?? null;
-        if ($error || $httpCode < 200 || $httpCode >= 300 || !is_string($linkId) || $linkId === '') {
-            throw new \Exception((string) __('Failed to create an EDPay payment link (HTTP %1).', $httpCode));
+            'reference' => (string) $orderId,
+            'description' => 'Order ' . $orderId,
+        ], "{$prefix}-payment-create");
+        $paymentId = $payment['data']['id'] ?? null;
+        if ($error || $httpCode < 200 || $httpCode >= 300 || !is_string($paymentId) || $paymentId === '') {
+            throw new \Exception((string) __('Failed to create an EDPay payment (HTTP %1).', $httpCode));
         }
-        [$sessionCode, $session, $sessionError] = $request("{$apiUrl}/v1/checkout/sessions", [
-            'payment_link_id' => $linkId,
-        ], "{$prefix}-checkout-session");
-        $token = $session['data']['token'] ?? null;
+        [$sessionCode, $session, $sessionError] = $request("{$apiUrl}/v1/payments/" . rawurlencode($paymentId) . "/public-checkout", [], "{$prefix}-public-checkout");
+        $token = $session['data']['token'] ?? $session['token'] ?? null;
         if ($sessionError || $sessionCode < 200 || $sessionCode >= 300 || !is_string($token) || $token === '') {
-            throw new \Exception((string) __('Failed to create an EDPay checkout session (HTTP %1).', $sessionCode));
+            throw new \Exception((string) __('Failed to create an EDPay hosted checkout (HTTP %1).', $sessionCode));
         }
-        $order->getPayment()->setAdditionalInformation('edpay_payment_link_id', $linkId);
+        $order->getPayment()->setAdditionalInformation('edpay_payment_id', $paymentId);
+        $order->getPayment()->setAdditionalInformation('edpay_payment_reference', (string) $orderId);
         $order->getPayment()->save();
         return 'https://pay.edutecka.com/pay?' . http_build_query([
             'token' => $token, 'pk' => $publicKey,

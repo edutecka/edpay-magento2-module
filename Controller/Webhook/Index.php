@@ -78,13 +78,13 @@ class Index extends Action implements CsrfAwareActionInterface
 
         if ($event['type'] === 'payment.succeeded') {
             $data = $event['data'] ?? [];
-            $linkId = (string) ($data['payment_link_id'] ?? '');
+            $reference = (string) ($data['reference'] ?? '');
             $paymentId = (string) ($data['id'] ?? '');
             $payments = $this->paymentCollectionFactory->create()->addFieldToFilter('method', 'edpay_gateway');
             $order = null;
             $payment = null;
             foreach ($payments as $candidatePayment) {
-                if ($linkId !== '' && $candidatePayment->getAdditionalInformation('edpay_payment_link_id') === $linkId) {
+                if ($reference !== '' && $candidatePayment->getAdditionalInformation('edpay_payment_reference') === $reference) {
                     $payment = $candidatePayment;
                     $order = $this->orderFactory->create()->load($candidatePayment->getParentId());
                     break;
@@ -94,10 +94,10 @@ class Index extends Action implements CsrfAwareActionInterface
                 || $paymentId === '' || !isset($data['amount_minor'])
                 || (int) $data['amount_minor'] !== (int) round((float) $order->getGrandTotal() * 100)
                 || strtoupper((string) ($data['currency'] ?? '')) !== strtoupper((string) $order->getOrderCurrencyCode())) {
-                return $result->setHttpResponseCode(409)->setData(['error' => 'Payment link, status, amount, or currency mismatch']);
+                return $result->setHttpResponseCode(409)->setData(['error' => 'Payment reference, status, amount, or currency mismatch']);
             }
             if ($payment->getAdditionalInformation('edpay_payment_id') || !$order->canInvoice()) {
-                return $result->setHttpResponseCode(409)->setData(['error' => 'Payment link already processed or order cannot be invoiced']);
+                return $result->setHttpResponseCode(409)->setData(['error' => 'Payment already processed or order cannot be invoiced']);
             }
             $payment->setAdditionalInformation('edpay_payment_id', $paymentId)->save();
             $invoice = $order->prepareInvoice();
