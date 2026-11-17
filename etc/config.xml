@@ -9,7 +9,6 @@
                 <order_status>pending_payment</order_status>
                 <currency>MZN</currency>
                 <api_url>https://api-pay.edutecka.com</api_url>
-                <sandbox>0</sandbox>
                 <webhook_tolerance_seconds>300</webhook_tolerance_seconds>
             </edpay_gateway>
         </payment>

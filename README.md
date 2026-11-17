@@ -28,7 +28,7 @@ There is no Composer package or signed release archive documented for installati
 ## Current implementation and configuration gaps
 
 - The payment model creates one parent payment through `POST /v1/payments`, then starts hosted checkout through `POST /v1/payments/{id}/public-checkout`; it uses stable order-based idempotency keys and builds the hosted URL from the returned opaque token at `https://pay.edutecka.com/pay?token=...&pk=...`.
-- The configured API URL defaults to `https://api-pay.edutecka.com`. Confirm the correct endpoint and request/response contract with EDPay before testing; do not assume this preview's default is appropriate for your account or environment.
+- The configured API URL defaults to https://api-pay.edutecka.com, the single EDPay API host. Test and live access use the same host; matching pk_test_... / sk_test_... or pk_live_... / sk_live_... prefixes determine the key mode.
 - The current repository does not include Magento admin configuration fields for the API URL, public/private keys or webhook secret, nor complete checkout commands that invoke the hosted-link method and redirect the customer. Add and verify that integration before attempting a checkout.
 - The checkout method requires a valid public/private API key pair from the same environment (`pk_test_...` with `sk_test_...`, or `pk_live_...` with `sk_live_...`) and rejects invalid pairs before contacting the API.
 - The payment model stores the payment ID and merchant reference in order payment AdditionalInformation. The webhook finds the order by reference, validates status/amount/currency, and prevents reprocessing once invoiced. The webhook route is declared at `/edpay/webhook/index`.
